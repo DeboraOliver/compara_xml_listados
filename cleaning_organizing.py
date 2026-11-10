@@ -58,18 +58,18 @@ def extrair_campos(elemento, caminho=(), segmento=None):
     return campos
 
 
-def extrair_evt_tab_rubrica(caminho_xml):
+def extrair_evento(caminho_xml):
     raiz = ET.parse(caminho_xml).getroot()
     elemento = next(
-        (elemento for elemento in raiz.iter() if nome_local(elemento.tag) == "evtTabRubrica"),
+        (elemento for elemento in raiz.iter() if nome_local(elemento.tag).startswith("evt")),
         None,
     )
     if elemento is None:
-        raise ValueError(f"O elemento <evtTabRubrica> não foi encontrado em {caminho_xml.name}")
+        raise ValueError(f"Nenhum elemento iniciado por 'evt' foi encontrado em {caminho_xml.name}")
 
     campos = {}
     for atributo, valor in elemento.attrib.items():
-        campos[f"evtTabRubrica.@{nome_local(atributo)}"] = valor
+        campos[f"{nome_local(elemento.tag)}.@{nome_local(atributo)}"] = valor
 
     for filho in elemento:
         campos.update(extrair_campos(filho))
@@ -84,7 +84,7 @@ def criar_planilha():
     linhas = []
     colunas = ["arquivo", "data_geracao"]
     for caminho_xml in arquivos_xml:
-        campos = extrair_evt_tab_rubrica(caminho_xml)
+        campos = extrair_evento(caminho_xml)
         linhas.append({
             "arquivo": caminho_xml.name,
             "data_geracao": extrair_data_geracao(caminho_xml.name),
@@ -96,7 +96,7 @@ def criar_planilha():
 
     workbook = Workbook()
     planilha = workbook.active
-    planilha.title = "evtTabRubrica"
+    planilha.title = "eventos"
     planilha.append(colunas)
     for celula in planilha[1]:
         celula.font = Font(bold=True)
