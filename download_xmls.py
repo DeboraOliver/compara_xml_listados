@@ -28,7 +28,7 @@ def main():
 
     with sync_playwright() as p:
         # Abre o navegador carregando a sessão salva (pode rodar em headless=True se desejar)
-        browser = p.chromium.launch(headless=False)
+        browser = p.chromium.launch(channel="msedge",headless=False)
         context = browser.new_context(
             # storage_state=ARQUIVO_SESSAO,
             accept_downloads=True
@@ -43,6 +43,8 @@ def main():
                 f"sigepe-gerenciadoresocial-web/private/consultar-eventos/consultar/"
                 f"{CNPJ_PADRAO}/{id_evento}"
             )
+            
+            print(url_consulta)
 
             print(f"[{idx}/{len(lista_ids)}] Processando ID: {id_evento}")
 
