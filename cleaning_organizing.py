@@ -18,14 +18,31 @@ def nome_local(tag):
     return tag.rsplit("}", 1)[-1]
 
 
-def extrair_data_geracao(nome_arquivo):
-    correspondencia = re.search(r"ID\d{15}(\d{8})", nome_arquivo)
+def extrair_data_geracao(elemento_evt):
+    id_evento = next(
+        (
+            valor
+            for atributo, valor in elemento_evt.attrib.items()
+            if nome_local(atributo) == "Id"
+        ),
+        None,
+    )
+    if id_evento is None:
+        raise ValueError(
+            f"O evento {nome_local(elemento_evt.tag)} não possui atributo 'Id'"
+        )
+
+    correspondencia = re.match(r"ID\d{15}(\d{8})", id_evento)
     if correspondencia is None:
-        raise ValueError(f"Não foi possível encontrar a data no ID do arquivo {nome_arquivo}")
+        raise ValueError(
+            f"Não foi possível encontrar a data no Id do evento {nome_local(elemento_evt.tag)}"
+        )
     try:
         return datetime.strptime(correspondencia.group(1), "%Y%m%d").date()
     except ValueError as erro:
-        raise ValueError(f"Data inválida no nome do arquivo {nome_arquivo}") from erro
+        raise ValueError(
+            f"Data inválida no Id do evento {nome_local(elemento_evt.tag)}"
+        ) from erro
 
 
 def extrair_campos(elemento, caminho=(), segmento=None):
@@ -67,7 +84,7 @@ def extrair_evento(caminho_xml):
     if elemento is None:
         raise ValueError(f"Nenhum elemento iniciado por 'evt' foi encontrado em {caminho_xml.name}")
 
-    campos = {}
+    campos = {"data_geracao": extrair_data_geracao(elemento)}
     for atributo, valor in elemento.attrib.items():
         campos[f"{nome_local(elemento.tag)}.@{nome_local(atributo)}"] = valor
 
@@ -85,9 +102,10 @@ def criar_planilha():
     colunas = ["arquivo", "data_geracao"]
     for caminho_xml in arquivos_xml:
         campos = extrair_evento(caminho_xml)
+        data_geracao = campos.pop("data_geracao")
         linhas.append({
             "arquivo": caminho_xml.name,
-            "data_geracao": extrair_data_geracao(caminho_xml.name),
+            "data_geracao": data_geracao,
             **campos,
         })
         for coluna in campos:
